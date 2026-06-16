@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor Multimedia NoSQL</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 p-6">
+
+    <div class="w-full max-w-2xl mx-auto bg-white rounded-xl shadow-lg p-8">
+
+        <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">
+            Gestor Multimedia NoSQL
+        </h1>
+
+        <p class="text-center text-gray-500 mb-6">
+            Carga imágenes y archivos de audio para almacenarlos en la base de datos.
+        </p>
+
+        <form action="/api/multimedia" method="POST" enctype="multipart/form-data" class="space-y-4">
+
+            <div>
+                <label class="block font-semibold mb-1">
+                    Título del Elemento
+                </label>
+
+                <input
+                    type="text"
+                    name="titulo"
+                    required
+                    class="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Ingrese un título">
+            </div>
+
+            <div>
+                <label class="block font-semibold mb-1">
+                    Descripción
+                </label>
+
+                <textarea
+                    name="descripcion"
+                    rows="4"
+                    class="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Ingrese una descripción"></textarea>
+            </div>
+
+            <!-- TAGS NUEVOS -->
+            <div>
+                <label class="block font-semibold mb-1">
+                    Tags (separados por comas)
+                </label>
+
+                <input
+                    type="text"
+                    name="tags"
+                    class="w-full border rounded-lg p-3"
+                    placeholder="musica, rock, guitarra">
+            </div>
+
+            <div>
+                <label class="block font-semibold mb-1">
+                    Seleccionar Imagen (PNG/JPG)
+                </label>
+
+                <input
+                    type="file"
+                    name="imagen"
+                    accept="image/*"
+                    required
+                    class="w-full border rounded-lg p-2">
+            </div>
+
+            <div>
+                <label class="block font-semibold mb-1">
+                    Seleccionar Audio (MP3/WAV)
+                </label>
+
+                <input
+                    type="file"
+                    name="audio"
+                    accept="audio/*"
+                    required
+                    class="w-full border rounded-lg p-2">
+            </div>
+
+            <button
+                type="submit"
+                class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition">
+                Guardar en la Nube
+            </button>
+
+        </form>
+
+    </div>
+
+    <div class="max-w-5xl mx-auto mt-10">
+
+        <h2 class="text-3xl font-bold mb-6 text-center">
+            Elementos Guardados
+        </h2>
+
+        <div
+            id="galeria"
+            class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        </div>
+
+    </div>
+
+<script>
+
+async function cargarGaleria() {
+
+    const respuesta = await fetch('/api/multimedia');
+    const datos = await respuesta.json();
+
+    const galeria = document.getElementById('galeria');
+
+    galeria.innerHTML = '';
+
+    datos.forEach(item => {
+
+        galeria.innerHTML += `
+            <div class="bg-white p-4 rounded-lg shadow">
+
+                <h3 class="text-xl font-bold mb-2">
+                    ${item.titulo}
+                </h3>
+
+                <p class="mb-2">
+                    ${item.descripcion || ''}
+                </p>
+
+                <p class="text-blue-600 text-sm mb-3">
+                    ${item.tags ? item.tags.join(', ') : ''}
+                </p>
+
+                <img
+                    src="${item.imagenUrl}"
+                    class="w-full rounded-lg mb-3"
+                >
+
+                <audio controls class="w-full mb-3">
+                    <source src="${item.audioUrl}">
+                </audio>
+
+                <button
+                    onclick="editarElemento(
+                        '${item._id}',
+                        '${item.titulo}',
+                        '${item.descripcion || ''}'
+                    )"
+                    class="w-full bg-yellow-500 text-white py-2 rounded hover:bg-yellow-600 mb-2">
+                    Editar
+                </button>
+
+                <button
+                    onclick="eliminarElemento('${item._id}')"
+                    class="w-full bg-red-600 text-white py-2 rounded hover:bg-red-700">
+                    Eliminar
+                </button>
+
+            </div>
+        `;
+    });
+}
+
+async function editarElemento(id, tituloActual, descripcionActual) {
+
+    const nuevoTitulo =
+        prompt('Nuevo título:', tituloActual);
+
+    if (nuevoTitulo === null) return;
+
+    const nuevaDescripcion =
+        prompt('Nueva descripción:', descripcionActual);
+
+    if (nuevaDescripcion === null) return;
+
+    await fetch('/api/multimedia/' + id, {
+
+        method: 'PUT',
+
+        headers: {
+            'Content-Type': 'application/json'
+        },
+
+        body: JSON.stringify({
+            titulo: nuevoTitulo,
+            descripcion: nuevaDescripcion
+        })
+
+    });
+
+    cargarGaleria();
+}
+
+async function eliminarElemento(id) {
+
+    const confirmar = confirm('¿Deseas eliminar este elemento?');
+
+    if (!confirmar) return;
+
+    await fetch('/api/multimedia/' + id, {
+        method: 'DELETE'
+    });
+
+    cargarGaleria();
+}
+
+cargarGaleria();
+
+</script>
+
+</body>
+</html>
